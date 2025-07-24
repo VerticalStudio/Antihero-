@@ -4,6 +4,7 @@ spawn(function()
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
     local HttpService = game:GetService("HttpService")
+    local StarterGui = game:GetService("StarterGui")
     local mt = getrawmetatable(game)
     setreadonly(mt, false)
 
@@ -95,4 +96,10 @@ spawn(function()
     end)
 
     setreadonly(mt, true)
+
+    StarterGui:SetCore("SendNotification", {
+        Title = "✅ Spoof Activated",
+        Text = "You are now untraceable. Stay hidden.",
+        Duration = 6
+    })
 end)
