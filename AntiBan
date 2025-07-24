@@ -1,0 +1,98 @@
+spawn(function()
+    task.wait()
+
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local HttpService = game:GetService("HttpService")
+    local mt = getrawmetatable(game)
+    setreadonly(mt, false)
+
+    local spoofedUsername = "Player_" .. math.random(10000, 99999)
+    local spoofedUserId = math.random(100000000, 999999999)
+    local spoofedAccountAge = math.random(100, 2500)
+    local spoofedMembership = Enum.MembershipType.None
+    local spoofedDisplayName = "Guest_" .. math.random(1000, 9999)
+
+    local spoofedJobId = "J" .. HttpService:GenerateGUID(false):gsub("-", "")
+    local spoofedPlaceId = math.random(1111111111, 9999999999)
+    local spoofedPrivateServerId = HttpService:GenerateGUID(false)
+    local spoofedPrivateServerOwnerId = 0
+
+    local blacklist = {
+        "ban", "kick", "log", "ip", "crash", "admin", "punish", "warn", "report", "destroy", "blacklist", "handler"
+    }
+
+    local function spoof()
+        local oldNamecall = mt.__namecall
+        mt.__namecall = newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            local args = {...}
+
+            if self == HttpService and (method == "PostAsync" or method == "GetAsync") then
+                return nil
+            end
+
+            if typeof(self) == "Instance" then
+                for _, word in ipairs(blacklist) do
+                    if self.Name:lower():find(word) or tostring(self):lower():find(word) then
+                        return nil
+                    end
+                end
+            end
+
+            if self == LocalPlayer and method:lower():find("kick") then
+                return nil
+            end
+
+            if self == LocalPlayer then
+                if method == "IsInGroup" then
+                    return false
+                elseif method == "GetRankInGroup" then
+                    return 0
+                elseif method == "GetRoleInGroup" then
+                    return "Guest"
+                end
+            end
+
+            return oldNamecall(self, unpack(args))
+        end)
+
+        local oldIndex = mt.__index
+        mt.__index = newcclosure(function(self, key)
+            if self == LocalPlayer then
+                if key == "Name" or key == "name" then
+                    return spoofedUsername
+                elseif key == "UserId" or key == "userId" then
+                    return spoofedUserId
+                elseif key == "AccountAge" then
+                    return spoofedAccountAge
+                elseif key == "MembershipType" then
+                    return spoofedMembership
+                elseif key == "DisplayName" then
+                    return spoofedDisplayName
+                end
+            elseif self == game then
+                if key == "JobId" then
+                    return spoofedJobId
+                elseif key == "PlaceId" then
+                    return spoofedPlaceId
+                elseif key == "PrivateServerId" then
+                    return spoofedPrivateServerId
+                elseif key == "PrivateServerOwnerId" then
+                    return spoofedPrivateServerOwnerId
+                end
+            end
+            return oldIndex(self, key)
+        end)
+
+        LocalPlayer.Kick = function() return end
+    end
+
+    spoof()
+
+    LocalPlayer.CharacterAdded:Connect(function()
+        spawn(spoof)
+    end)
+
+    setreadonly(mt, true)
+end)
